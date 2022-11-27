@@ -1,0 +1,84 @@
+---
+# Source: myApp/templates/ns.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    kubernetes.io/metadata.name: demo     
+  name: demo
+spec:
+  finalizers:
+  - kubernetes
+---
+# Source: myApp/templates/config.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: my-cm
+  namespace: demo  
+data:
+  ENV_BG_COLOR: blue
+---
+# Source: myApp/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: myApp
+  name: my-svc
+  namespace: demo  
+spec:
+  ports:
+  - port: 8080
+    protocol: TCP
+    targetPort: 8080
+  selector:
+    app: myApp
+  type: ClusterIP
+---
+# Source: myApp/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: myApp
+  name: my-app
+  namespace: demo  
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: myApp
+  template:
+    metadata:
+      labels:
+        app: myApp
+    spec:
+      containers:
+      - image: narenp/gems:latest
+        name: gems
+        envFrom:
+        - configMapRef:
+            name: my-cm
+---
+# Source: myApp/templates/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  labels:
+    app: myApp
+  name: my-ingress
+  namespace: demo  
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: demo.127.0.0.1.nip.io
+    http:
+      paths:
+      - backend:
+          service:
+            name: my-svc
+            port:
+              number: 8080
+        path: /
+        pathType: Prefix
